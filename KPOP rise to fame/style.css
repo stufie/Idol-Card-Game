@@ -1,0 +1,199 @@
+body {
+  display: flex;
+  flex-direction: column;     /* stack children top-to-bottom */
+  justify-content: flex-start;/* keep them at the top */
+  align-items: center;        /* center them horizontally */
+  min-height: 100vh;
+  margin: 0;
+  padding: 20px;
+  box-sizing: border-box;
+  font-family: sans-serif;
+  background: #f7f7f7;
+}
+
+.zones-wrapper {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;  /* ← add this */
+}
+
+.left-zones,
+.right-zones {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* General zone styling */
+.zone {
+  display: flex;
+  gap: 10px;
+  border: 2px dashed #bbb;
+  height: 220px;
+  padding: 30px 10px 10px 10px; /* top padding to make room for label */
+  background: white;
+  transition: 0.2s;
+  position: relative;
+  align-items: flex-start;
+  overflow-x: auto;
+}
+
+.zone.dragover {
+  border: 2px dashed #007bff;
+  background-color: #e0f0ff;
+}
+
+/* Stage Zone – contains 5 slots */
+.stage-zone {
+  width: 980px; /* Match hand-zone */
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  gap: 10px;
+  margin: 0 auto;
+  border: 2px dashed #bbb;
+  background: white;
+  padding: 40px 20px 20px 20px; /* increased top padding for label */
+  height: 220px;  /* increased height */
+  overflow: hidden;
+}
+
+.stage-slot {
+  flex: 1;
+  min-width: 170px; /* Matches card width */
+  max-width: 170px;
+  min-height: 100%;
+  border: 2px dashed #bbb;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  height: 210px;
+}
+
+.stage-slot.filled {
+  border-color: #ff9bba; /* light pink */
+}
+
+.stage-slot.maxed {
+  border-color: #fd57aa; /* hot pink */
+}
+
+/* Cards */
+.card {
+  background: #fff;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 8px;
+  width: 170px;
+  height: 200px;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.1);
+  cursor: grab;
+  user-select: none;
+  white-space: pre-wrap;
+}
+
+/* Buttons */
+button {
+  padding: 6px 6px;
+  cursor: pointer;
+  min-width: 80px;
+}
+
+.draw-buttons-left,
+.draw-buttons-right {
+  display: flex;
+  gap: 10px;
+}
+
+.draw-buttons-left button,
+.draw-buttons-right button {
+  flex: 1;
+  min-width: 80px;
+}
+
+/* Zone widths */
+.support-zone {
+  position: relative;
+   padding: 40px 20px 20px 20px;
+  z-index: 1000;
+  width: 600px;
+}
+
+.training-zone {
+padding: 40px 10px 20px 10px;
+}
+
+.hand-zone {
+  padding: 40px 20px 20px 20px;
+  width: 980px;
+}
+
+.discard-zone {
+  position: fixed;
+  top: 0;
+  width: 80px;
+  height: 100vh;
+  line-height: 100vh;
+  user-select: none;
+  z-index: 9999;
+  pointer-events: auto;
+  transition: background-color 0.3s;
+}
+
+.discard-zone.dragover {
+  background-color: rgba(141, 141, 141, 0.16);
+  color: white;
+  cursor: pointer;
+}
+
+#discardLeft {
+  left: 0;
+}
+
+#discardRight {
+  right: 0;
+}
+
+/* Labels */
+.zone-label {
+  position: absolute;
+  top: 5px; /* stays near top inside padding area */
+  left: 10px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #555;
+  user-select: none;
+  pointer-events: none;
+  padding: 8px 10px ;
+  z-index: 10;
+} 
+
+.slot-label {
+  position: absolute;
+  padding: 8px 10px ;
+  bottom: 5px;       /* near the bottom */
+  left: 50%;         /* center horizontally */
+  transform: translateX(-50%); /* center the label by shifting left 50% of its own width */
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #676161;
+  user-select: none;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.score-label {
+  position: absolute;
+  padding: 8px 10px ;
+  top: 5px;
+  left: 10px;
+ font-weight: bold;
+  font-size: .95rem;
+  color: #555;
+  z-index: 10;
+  user-select: none;
+  pointer-events: none;
+}
+
+

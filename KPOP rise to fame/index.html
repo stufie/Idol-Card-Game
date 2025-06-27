@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rise to Fame – Two Player</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Rise to Fame – 2 Player TCG</h1>
+
+  <!-- PLAYER 1 -->
+  <div class="player-area" id="player1Area">
+    <h2>🎤 Player 1</h2>
+    <div class="zones-wrapper">
+      <div class="left-zones">
+        <div class="draw-buttons-left">
+          <button onclick="drawSupportCards('player1Support', 3)">Draw 3 Cards (Support)</button>
+          <button onclick="drawSupport('player1Support', 1)">Draw 1 Card (Support)</button>
+        </div>
+        <div id="player1Support" class="zone support-zone">
+          <div class="zone-label">Support Hand</div>
+        </div>
+        <div id="player1Training" class="zone training-zone" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+          <div class="zone-label">Training Room</div>
+        </div>
+      </div>
+
+      <div class="right-zones">
+        <div class="draw-buttons-right">
+          <button onclick="drawCards('player1Hand')">Draw 5 Cards (Hand)</button>
+          <button onclick="draw('player1Hand', 1)">Draw 1 Card (Hand)</button>
+        </div>
+        <div id="player1Hand" class="zone hand-zone" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+          <div class="zone-label">Hand</div>
+        </div>
+
+        <div id="player1Stage" class="stage-zone">
+  <div id="player1Score" class="score-label">Stage        Influence points: 0 fans</div>
+
+          <div id="player1Vocal" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+            <div class="slot-label">Vocal</div>
+          </div>
+          <div id="player1Dance" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+            <div class="slot-label">Dance</div>
+          </div>
+          <div id="player1Center" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+            <div class="slot-label">Center</div>
+          </div>
+          <div id="player1Visual" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+            <div class="slot-label">Visual</div>
+          </div>
+          <div id="player1Rap" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+            <div class="slot-label">Rap</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYER 2 -->
+  <div class="player-area" id="player2Area">
+    <h2>🎧 Player 2</h2>
+    <div class="zones-wrapper">
+      <div class="left-zones">
+        <div class="draw-buttons-left">
+          <button onclick="drawSupportCards('player2Support', 3)">Draw 3 Cards (Support)</button>
+          <button onclick="drawSupport('player2Support', 1)">Draw 1 Card (Support)</button>
+        </div>
+        <div id="player2Support" class="zone support-zone">
+          <div class="zone-label">Support Hand</div>
+        </div>
+        <div id="player2Training" class="zone training-zone" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+          <div class="zone-label">Training Room</div>
+        </div>
+      </div>
+      
+      <div class="right-zones">
+        <div class="draw-buttons-right">
+          <button onclick="drawCards('player2Hand')">Draw 5 Cards (Hand)</button>
+          <button onclick="draw('player2Hand', 1)">Draw 1 Card (Hand)</button>
+        </div>
+        <div id="player2Hand" class="zone hand-zone" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+          <div class="zone-label">Hand</div>
+        </div>
+        <div id="player2Stage" class="stage-zone">
+           <div id="player2Score" class="score-label">Stage        Influence points: 0 fans</div>
+          <div id="player2Vocal" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+            <div class="slot-label">Vocal</div>
+          </div>
+          <div id="player2Dance" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+            <div class="slot-label">Dance</div>
+          </div>
+          <div id="player2Center" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+            <div class="slot-label">Center</div>
+          </div>
+          <div id="player2Visual" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+            <div class="slot-label">Visual</div>
+          </div>
+          <div id="player2Rap" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+            <div class="slot-label">Rap</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+        <div id="discardLeft" class="discard-zone"></div>
+        <div id="discardRight" class="discard-zone"></div>
+
+  </div>
+
+  <script src="deck.js"></script>
+  <script src="scoring.js"></script>
+  <script src="game.js"></script>
+  
+</body>
+</html>
