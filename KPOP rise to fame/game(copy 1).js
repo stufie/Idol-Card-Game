@@ -758,19 +758,12 @@ function removeDeployedIdol(name, star) {
   }
 }
 
-// Keeps track of withheld lower tiers per idol name
-const idolHolding = {};
-
 function toggleDiscardMode(player) {
   const discardBtn = document.getElementById(`${player}DiscardBtn`);
 
-  // If already in discard mode for this player → confirm or cancel
   if (discardModePlayer === player) {
-    const selectedCards = Array.from(
-      document.querySelectorAll(`.card.selected[data-player="${player}"]`)
-    );
+    const selectedCards = Array.from(document.querySelectorAll(`.card.selected[data-player="${player}"]`));
 
-    // Nothing selected? cancel
     if (selectedCards.length === 0) {
       discardModePlayer = null;
       discardBtn.classList.remove('active-discard');
@@ -779,70 +772,63 @@ function toggleDiscardMode(player) {
       return;
     }
 
-    // Process each selected card
     selectedCards.forEach(card => {
-      const { name, stars } = parseCard(card);
-      const parent = card.parentElement;
-      const fromStageOrTraining =
-        parent?.classList.contains('stage-slot') ||
-        parent?.id.endsWith('Training');
+      const cardData = parseCard(card);
+      if (!cardData) return;
 
-      // Support cards go straight back if not duplicate
+      const name = cardData.name;
+      const star = cardData.stars;
+      const parent = card.parentElement;
+      const fromStageOrTraining = parent?.classList.contains('stage-slot') || parent?.id.endsWith('Training');
+
       if (card.classList.contains('support')) {
         if (!supportDeck.includes(name)) supportDeck.push(name);
       } else {
-        const tier1 = `${name} ⭐`;
-        const tier2 = `${name} ⭐⭐`;
-        const tier3 = `${name} ⭐⭐⭐`;
+        const base1 = `${name} ⭐`;
+        const base2 = `${name} ⭐⭐`;
+        const base3 = `${name} ⭐⭐⭐`;
 
         if (fromStageOrTraining && upgradedIdols.has(name)) {
-          // If idol was upgraded, withhold lower tiers until top is gone
-          idolHolding[name] = idolHolding[name] || new Set();
-
-          if (stars === 3) {
-            // discarding top tier → release all held + this tier
-            [tier1, tier2, tier3].forEach(t => {
-              if (!deck.includes(t)) deck.push(t);
+          if (star === 3) {
+            [base1, base2, base3].forEach(tierName => {
+              if (!deck.includes(tierName)) deck.push(tierName);
             });
-            delete idolHolding[name];
             upgradedIdols.delete(name);
           } else {
-            // hold onto this tier (and any lower)
-            if (stars === 2) idolHolding[name].add(tier1);
-            if (stars === 1) idolHolding[name].add(tier1);
-            idolHolding[name].add(tier2);
+            // Hold onto returned tiers until final tier is discarded
+            if (!idolHolding[name]) idolHolding[name] = new Set();
+            if (star === 2) {
+              idolHolding[name].add(base1);
+              idolHolding[name].add(base2);
+            } else if (star === 1) {
+              idolHolding[name].add(base1);
+            }
           }
         } else {
-          // normal return of this tier
-          const thisTier = `${name} ${'⭐'.repeat(stars)}`;
-          if (!deck.includes(thisTier)) deck.push(thisTier);
+          const cardName = `${name} ${'⭐'.repeat(star)}`;
+          if (!deck.includes(cardName)) deck.push(cardName);
         }
       }
 
-      // Clear styling if on a stage slot
-      if (parent?.classList.contains('stage-slot')) {
+      if (parent && parent.classList.contains('stage-slot')) {
         parent.classList.remove("filled", "maxed", "matched");
       }
 
       card.remove();
     });
 
-    // After removal, check if any held tiers can now be released
-    Object.keys(idolHolding).forEach(idolName => {
-      // if no active copies remain on board or training
-      const stillActive = document.querySelector(
-        `.card[data-name="${idolName}"]`
-      );
-      if (!stillActive) {
-        idolHolding[idolName].forEach(tier => {
+    // Recheck if any idol has no active cards left
+    Object.keys(idolHolding).forEach(name => {
+      const stillActive = document.querySelector(`.card[data-player="${player}"][data-name="${name}"]`);
+      if (!stillActive && idolHolding[name]) {
+        idolHolding[name].forEach(tier => {
           if (!deck.includes(tier)) deck.push(tier);
         });
-        delete idolHolding[idolName];
-        upgradedIdols.delete(idolName);
+        delete idolHolding[name];
+        upgradedIdols.delete(name);
       }
     });
 
-    // Exit discard mode
     discardModePlayer = null;
     discardBtn.classList.remove('active-discard');
     discardBtn.textContent = "🗑️ Discard";
@@ -851,14 +837,12 @@ function toggleDiscardMode(player) {
     return;
   }
 
-  // Otherwise → enter discard mode
   discardModePlayer = player;
   discardBtn.classList.add('active-discard');
   discardBtn.textContent = "✅ Confirm Discard";
 
   clearCardSelection(player);
 
-  // Click toggles “selected” on this player’s cards
   document.querySelectorAll(`.card[data-player="${player}"]`).forEach(card => {
     card.onclick = () => {
       if (discardModePlayer !== player) return;
@@ -867,18 +851,31 @@ function toggleDiscardMode(player) {
   });
 }
 
-// Helper to clear any “selected” state and handlers
-function clearCardSelection(player) {
-  document
-    .querySelectorAll(`.card.selected[data-player="${player}"]`)
-    .forEach(card => {
-      card.classList.remove('selected');
-      card.onclick = null;
-    });
+
+  // Enter discard mode for this player
+  discardModePlayer = player;
+  discardBtn.classList.add('active-discard');
+  discardBtn.textContent = "✅ Confirm Discard";
+
+  clearCardSelection(player);
+
+  // Enable card selection on click for discard
+  document.querySelectorAll(`.card[data-player="${player}"]`).forEach(card => {
+    card.onclick = () => {
+      if (discardModePlayer !== player) return;
+      card.classList.toggle('selected');
+    };
+  });
 }
 
-document.getElementById("player1DiscardBtn").onclick = () => toggleDiscardMode("player1");
-document.getElementById("player2DiscardBtn").onclick = () => toggleDiscardMode("player2");
+// Helper: Clear selected cards for the player
+function clearCardSelection(player) {
+  document.querySelectorAll(`.card.selected[data-player="${player}"]`).forEach(card => {
+    card.classList.remove('selected');
+    card.onclick = null; // Remove discard selection handler
+  });
+}
+
 
 // --- Initialize decks and listeners ---
 shuffleDeck();
