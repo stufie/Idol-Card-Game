@@ -2,6 +2,9 @@ let shuffledDeck = [];
 let shuffledSupportDeck = [];
 let dragged = null;
 let currentHighlight = null; // for upgrade highlight on stage cards
+const upgradedIdols = new Set();
+let uniqueIdCounter = 0;
+let discardModePlayer = null;
 
 // --- Deck Shuffling ---
 
@@ -95,6 +98,10 @@ function drawSupport(targetId, count = 1) {
   updateMatchingIdolHighlights(playerFromZone(targetId));
 }
 
+
+
+
+
 // --- Helpers ---
 
 function playerFromZone(zoneId) {
@@ -120,32 +127,44 @@ function createCardElement(cardText, player) {
   return card;
 }
 
-function parseCard(card) {
-  const lines = card.textContent.trim().split('\n');
-  
-  
-console.log(`Card innerText:\n---\n${existingCard.textContent}\n---`);
-  
-  
-  for (const line of lines) {
-    const match = line.trim().match(/^(.+?)\s(⭐+)$/);
-    if (match) {
-      return {
-        name: match[1].trim(),
-        stars: match[2].length
-      };
-    }
-  }
 
-  return null; // If no line matches
+function parseCard(cardElement) {
+  const lines = cardElement.innerText.split("\n").map(l => l.trim()).filter(Boolean);
+
+  const nameLine = lines.find(l => l.includes('⭐'));
+  const positionLine = lines.find(l => l.toLowerCase().startsWith('position:'));
+  const influenceLine = lines.find(l => l.toLowerCase().startsWith('influence:'));
+
+  const nameMatch = nameLine?.match(/^(.+?)\s+⭐+/);
+  const starsMatch = nameLine?.match(/⭐/g);
+  const position = positionLine?.split(':')[1]?.trim() || '';
+  const influenceMatch = influenceLine?.match(/(\d+)k/);
+
+  return {
+    name: nameMatch?.[1]?.trim() || "",
+    stars: starsMatch?.length || 0,
+    position: position,
+    influence: parseInt(influenceMatch?.[1] || "0")
+  };
 }
-// --- Drag & Drop Handlers ---
 
+
+
+
+
+
+
+// --- Drag & Drop Handlers ---
 function drag(ev) {
   dragged = ev.target;
   currentHighlight = null;
-  ev.dataTransfer.setData("text/plain", ev.target.id);
+
+  if (!dragged.id) {
+    dragged.id = `card-${uniqueIdCounter++}`;
+  }
+  ev.dataTransfer.setData("text/plain", dragged.id);
 }
+
 
 function handleDragEnter(ev) {
   ev.preventDefault();
@@ -157,9 +176,6 @@ function handleDragEnter(ev) {
 
   dropZone.classList.add('dragover');
 }
-
-
-
 
 
 
@@ -176,7 +192,6 @@ function allowDrop(ev) {
   const draggedData = parseCard(dragged);
   if (!draggedData) return;
 
-  // Determine which player the drop zone belongs to
   let dropZonePlayer = null;
   if (dropZoneId.includes('1')) dropZonePlayer = 'player1';
   else if (dropZoneId.includes('2')) dropZonePlayer = 'player2';
@@ -185,19 +200,14 @@ function allowDrop(ev) {
     if (stageParent?.id.includes('1')) dropZonePlayer = 'player1';
     else if (stageParent?.id.includes('2')) dropZonePlayer = 'player2';
   }
-  if (!dropZonePlayer) return;
+  if (!dropZonePlayer || draggedPlayer !== dropZonePlayer) return;
 
-  // Only allow drops within the same player area
-  if (draggedPlayer !== dropZonePlayer) return;
-
-  // Zone flags
   const isTrainingZone = dropZoneId === `${dropZonePlayer}Training`;
   const isHandZone = draggedParentId.endsWith('Hand');
   const draggedFromStageSlot = draggedParentClassList.contains('stage-slot');
   const draggedFromTrainingZone = draggedParentId === `${dropZonePlayer}Training`;
   const dropIsStageSlot = dropZone.classList.contains('stage-slot');
 
-  // Get cards currently in training and stage zones
   const trainingZone = document.getElementById(`${dropZonePlayer}Training`);
   const stageZone = document.getElementById(`${dropZonePlayer}Stage`);
   const trainingCards = Array.from(trainingZone.children).filter(c => c.classList.contains('card'));
@@ -205,125 +215,98 @@ function allowDrop(ev) {
 
   // --- Hand → Training ---
   if (isTrainingZone && isHandZone) {
-    console.log(`Attempting Hand → Training drop for card: ${draggedData.name} ⭐${draggedData.stars}`);
-
-    if (trainingCards.some(card => parseCard(card)?.name === draggedData.name)) {
-      console.log('Reject: duplicate idol in training');
-      return;
-    }
-    if (trainingCards.length >= 3) {
-      console.log('Reject: training room full');
-      return;
-    }
+    if (trainingCards.some(card => parseCard(card)?.name === draggedData.name)) return;
+    if (trainingCards.length >= 3) return;
 
     if (draggedData.stars === 1) {
-      console.log('Allow: ⭐1 card from hand to training');
       dropZone.classList.add('dragover');
       return;
     }
 
     const validStageMatch = stageCards.some(card => {
       const data = parseCard(card);
-      const valid = data && data.name === draggedData.name && data.stars === draggedData.stars - 1;
-      if (valid) console.log(`Found valid stage card for upgrade: ${data.name} ⭐${data.stars}`);
-      return valid;
+      return data && data.name === draggedData.name && data.stars === draggedData.stars - 1;
     });
 
-    if (validStageMatch) {
-      console.log('Allow: higher star card from hand to training because stage has one star less');
-      dropZone.classList.add('dragover');
-    } else {
-      console.log('Reject: no matching stage card with one star less for this idol');
+    if (validStageMatch) dropZone.classList.add('dragover');
+    return;
+  }
+
+  // --- Training → Stage Slot ---
+  if (dropIsStageSlot && draggedFromTrainingZone) {
+    const existingCard = dropZone.querySelector('.card');
+    const isCenterSlot = dropZone.id.includes("Center");
+
+    if (isCenterSlot && draggedData.stars < 3) {
+      return; // Center slot requires 3-star idol
     }
-    return;
-  }
 
-  // --- Training → Stage ---
- if (dropIsStageSlot && draggedFromTrainingZone) {
-  console.log(`Attempting Training → Stage drop for card: ${draggedData.name} ⭐${draggedData.stars}`);
-
-  const existingCard = dropZone.querySelector('.card');
-
-  if (!existingCard) {
-    console.log('No existing card in this stage slot');
-    if (draggedData.stars === 1) {
-      console.log('Allow: placing ⭐1 card on empty stage slot');
-      dropZone.classList.add('dragover');
-    } else {
-      console.log(`Reject: can't place ⭐${draggedData.stars} on empty stage slot`);
+    if (!existingCard) {
+      if (draggedData.stars === 1 || (isCenterSlot && draggedData.stars === 3)) {
+        dropZone.classList.add('dragover');
+        return;
+      }
     }
-    return;
+
+    if (existingCard) {
+      const existingData = parseCard(existingCard);
+      if (existingData.name === draggedData.name && draggedData.stars === existingData.stars + 1) {
+        dropZone.classList.add('dragover');
+        return;
+      }
+      // Allow swapping any stars here as per your request (except center slot rules)
+      if (!isCenterSlot) {
+        dropZone.classList.add('dragover');
+        return;
+      }
+    }
   }
-
-  // ✅ ONLY call parseCard if existingCard is not null
-  const existingData = parseCard(existingCard);
-  console.log(`Existing stage card: ${existingData?.name} ⭐${existingData?.stars}`);
-
-  if (!existingData) {
-    console.log('Reject: existing card could not be parsed');
-    return;
-  }
-
-  if (existingData.name !== draggedData.name) {
-    console.log('Reject: different idols, cannot upgrade');
-    return;
-  }
-
-  const starDiff = draggedData.stars - existingData.stars;
-  console.log(`Star difference: ${starDiff}`);
-
-  if (starDiff === 1) {
-    console.log('Allow: upgrading stage card by 1 star');
-    dropZone.classList.add('dragover');
-  } else {
-    console.log(`Reject: can only upgrade one tier at a time. Trying to go from ⭐${existingData.stars} to ⭐${draggedData.stars}`);
-  }
-
-  return;
-}
-
 
   // --- Stage → Training ---
   if (isTrainingZone && draggedFromStageSlot) {
-    if (trainingCards.some(card => parseCard(card)?.name === draggedData.name)) {
-      console.log('Reject: duplicate idol in training from stage');
-      return;
-    }
-    if (trainingCards.length >= 3) {
-      console.log('Reject: training room full from stage');
-      return;
-    }
-
-    console.log('Allow: stage card to training');
+    if (trainingCards.some(card => parseCard(card)?.name === draggedData.name)) return;
+    if (trainingCards.length >= 3) return;
     dropZone.classList.add('dragover');
     return;
   }
 
   // --- Stage → Stage ---
   if (draggedFromStageSlot && dropIsStageSlot) {
-    console.log('Allow: stage to stage slot move');
-    dropZone.classList.add('dragover');
+    const existingCard = dropZone.querySelector('.card');
+    const isCenterSlotDrop = dropZone.id.includes("Center");
+    const isCenterSlotDrag = draggedParent.id.includes("Center");
+
+    const draggedStars = draggedData.stars;
+    const existingStars = existingCard ? parseCard(existingCard).stars : null;
+
+    if ((isCenterSlotDrop || isCenterSlotDrag) && (draggedStars < 3 || (existingCard && existingStars < 3))) {
+      console.warn("Swaps involving Center slot require both idols to be ⭐⭐⭐.");
+      return;
+    }
+
+    // Always allow drop into empty stage slot
+    if (!existingCard) {
+      dropZone.classList.add('dragover');
+      return;
+    }
+
+    const existingData = parseCard(existingCard);
+    const starDiff = draggedStars - existingData.stars;
+    if ((existingData.name === draggedData.name && starDiff === 1) || (existingData.name !== draggedData.name)) {
+      dropZone.classList.add('dragover');
+    }
     return;
   }
 
   // --- Training → Training ---
   if (isTrainingZone && draggedFromTrainingZone) {
-    console.log('Allow: training to training rearrange');
     dropZone.classList.add('dragover');
     return;
   }
 
-  // --- Block Hand → Stage ---
-  if (isHandZone && dropIsStageSlot) {
-    console.log('Reject: hand to stage direct move blocked');
-    return;
-  }
+  // --- Hand → Stage is blocked ---
+  if (isHandZone && dropIsStageSlot) return;
 }
-
-
-
-
-
 
 
 
@@ -395,6 +378,7 @@ function drop(ev) {
   const draggedParentId = draggedParent?.id || "";
   const draggedParentClassList = draggedParent?.classList || [];
   const draggedData = parseCard(dragged);
+  if (!draggedData) return;
 
   let dropZonePlayer = null;
   if (dropZone.id) {
@@ -404,7 +388,7 @@ function drop(ev) {
     dropZonePlayer = stageZone.id.includes('1') ? 'player1' : 'player2';
   }
 
-  if (!dropZonePlayer || draggedPlayer !== dropZonePlayer || !draggedData) {
+  if (!dropZonePlayer || draggedPlayer !== dropZonePlayer) {
     clearHighlight();
     removeDragOver(ev);
     return;
@@ -426,22 +410,37 @@ function drop(ev) {
     } else {
       slot.classList.remove("maxed");
     }
+
+    const slotTypeRaw = slot.id.replace(/player\d/, ''); // e.g. 'Center', 'Vocal'
+    const slotType = slotTypeRaw.toLowerCase();
+
+    // For center slot, always treat as matched
+    if (slotTypeRaw.toLowerCase() === 'center') {
+      slot.classList.add('matched');
+      return;
+    }
+
+    const positions = (data.position || "").toLowerCase().split('/');
+    const positionMatch = positions.some(pos => pos === slotType);
+    slot.classList.toggle('matched', positionMatch);
   };
 
   const clearSlotStyle = (slot) => {
     if (!slot.querySelector('.card')) {
-      slot.classList.remove("filled", "maxed");
+      slot.classList.remove("filled", "maxed", "matched");
     }
   };
 
-  // Hand → Training
   if (isTrainingZone && draggedFromHandZone) {
     const trainingCards = Array.from(trainingZone.children).filter(c => c.classList.contains('card'));
     const stageCards = Array.from(stageZone.querySelectorAll('.card'));
-    const stageHasMatch = stageCards.some(card => parseCard(card).name === draggedData.name);
+    const hasMatchingLowerStarOnStage = stageCards.some(card => {
+      const data = parseCard(card);
+      return data && data.name === draggedData.name && data.stars === draggedData.stars - 1;
+    });
 
-    if (draggedData.stars !== 1 && !stageHasMatch) return clearHighlight(), removeDragOver(ev);
-    if (trainingCards.some(card => parseCard(card).name === draggedData.name)) return clearHighlight(), removeDragOver(ev);
+    if (draggedData.stars !== 1 && !hasMatchingLowerStarOnStage) return clearHighlight(), removeDragOver(ev);
+    if (trainingCards.some(card => parseCard(card)?.name === draggedData.name)) return clearHighlight(), removeDragOver(ev);
     if (trainingCards.length >= 3) return clearHighlight(), removeDragOver(ev);
 
     trainingZone.appendChild(dragged);
@@ -451,23 +450,48 @@ function drop(ev) {
     return;
   }
 
-  // Training → Stage Slot
   if (dropIsStageSlot && draggedFromTrainingZone) {
     const existingCard = dropZone.querySelector('.card');
-    if (!existingCard && draggedData.stars === 1) {
-      dropZone.appendChild(dragged);
-      updateSlotStyle(dropZone, draggedData);
+    const isCenterSlot = dropZone.id.includes("Center");
+
+    if (isCenterSlot && draggedData.stars < 3) {
       clearHighlight(); removeDragOver(ev);
-      updateMatchingIdolHighlights(draggedPlayer);
-      updateStageScores();
-      return;
+      return; // Center slot requires 3-star idol
+    }
+
+    if (!existingCard) {
+      if (draggedData.stars === 1 || (isCenterSlot && draggedData.stars === 3)) {
+        dropZone.appendChild(dragged);
+        updateSlotStyle(dropZone, draggedData);
+        clearHighlight(); removeDragOver(ev);
+        updateMatchingIdolHighlights(draggedPlayer);
+        updateStageScores();
+        return;
+      }
     }
 
     if (existingCard) {
       const existingData = parseCard(existingCard);
-      if (existingData.name === draggedData.name && existingData.stars < draggedData.stars) {
+      if (existingData.name === draggedData.name && draggedData.stars === existingData.stars + 1) {
         dropZone.replaceChild(dragged, existingCard);
         updateSlotStyle(dropZone, draggedData);
+
+        // Track upgraded idol names globally
+        if (draggedData.stars === 3) {
+          upgradedIdols.add(draggedData.name);
+        }
+
+        clearHighlight(); removeDragOver(ev);
+        updateMatchingIdolHighlights(draggedPlayer);
+        updateStageScores();
+        return;
+      }
+      // Allow swapping any stars here except center slot rules
+      if (!isCenterSlot) {
+        dropZone.replaceChild(dragged, existingCard);
+        draggedParent.appendChild(existingCard);
+        updateSlotStyle(dropZone, draggedData);
+        updateSlotStyle(draggedParent, existingData);
         clearHighlight(); removeDragOver(ev);
         updateMatchingIdolHighlights(draggedPlayer);
         updateStageScores();
@@ -476,10 +500,9 @@ function drop(ev) {
     }
   }
 
-  // Stage Slot → Training
   if (isTrainingZone && draggedFromStageSlot) {
     const trainingCards = Array.from(trainingZone.children).filter(c => c.classList.contains('card'));
-    if (trainingCards.some(card => parseCard(card).name === draggedData.name)) return clearHighlight(), removeDragOver(ev);
+    if (trainingCards.some(card => parseCard(card)?.name === draggedData.name)) return clearHighlight(), removeDragOver(ev);
     if (trainingCards.length >= 3) return clearHighlight(), removeDragOver(ev);
 
     trainingZone.appendChild(dragged);
@@ -490,9 +513,19 @@ function drop(ev) {
     return;
   }
 
-  // Stage Slot → Stage Slot (swap or upgrade)
   if (draggedFromStageSlot && dropIsStageSlot) {
     const existingCard = dropZone.querySelector('.card');
+    const isCenterSlotDrop = dropZone.id.includes("Center");
+    const isCenterSlotDrag = draggedParent.id.includes("Center");
+
+    const draggedStars = draggedData.stars;
+    const existingStars = existingCard ? parseCard(existingCard).stars : null;
+
+    if ((isCenterSlotDrop || isCenterSlotDrag) && (draggedStars < 3 || (existingCard && existingStars < 3))) {
+      console.warn("Swaps involving Center slot require both idols to be ⭐⭐⭐.");
+      clearHighlight(); removeDragOver(ev);
+      return;
+    }
 
     if (!existingCard) {
       dropZone.appendChild(dragged);
@@ -505,7 +538,8 @@ function drop(ev) {
     }
 
     const existingData = parseCard(existingCard);
-    if (existingData.name === draggedData.name && existingData.stars < draggedData.stars) {
+    const starDiff = draggedStars - existingData.stars;
+    if (existingData.name === draggedData.name && starDiff === 1) {
       dropZone.replaceChild(dragged, existingCard);
       updateSlotStyle(dropZone, draggedData);
       clearSlotStyle(draggedParent);
@@ -513,19 +547,18 @@ function drop(ev) {
       updateMatchingIdolHighlights(draggedPlayer);
       updateStageScores();
       return;
-    } else {
-      dropZone.replaceChild(dragged, existingCard);
-      draggedParent.appendChild(existingCard);
-      updateSlotStyle(dropZone, draggedData);
-      updateSlotStyle(draggedParent, existingData);
-      clearHighlight(); removeDragOver(ev);
-      updateMatchingIdolHighlights(draggedPlayer);
-      updateStageScores();
-      return;
     }
+
+    dropZone.replaceChild(dragged, existingCard);
+    draggedParent.appendChild(existingCard);
+    updateSlotStyle(dropZone, draggedData);
+    updateSlotStyle(draggedParent, existingData);
+    clearHighlight(); removeDragOver(ev);
+    updateMatchingIdolHighlights(draggedPlayer);
+    updateStageScores();
+    return;
   }
 
-  // Training → Training
   if (isTrainingZone && draggedFromTrainingZone) {
     const targetCard = dropZone.querySelector('.card');
     if (!targetCard) {
@@ -540,9 +573,14 @@ function drop(ev) {
     return;
   }
 
-  clearHighlight();
-  removeDragOver(ev);
+  clearHighlight(); removeDragOver(ev);
 }
+
+
+
+
+
+
 
 // --- Highlight matching idols (hand, stage, and training) ---
 
@@ -634,52 +672,98 @@ function refreshStageListeners() {
   });
 }
 
-// Discard drop handler
-function onDiscardDrop(ev) {
-  ev.preventDefault();
-  ev.currentTarget.classList.remove('dragover');
 
-  if (!dragged || !dragged.parentNode) {
-    console.warn('No valid dragged element to discard');
-    return;
-  }
 
-  const cardData = parseCard(dragged);
-  if (!cardData) {
-    console.warn('Failed to parse card data');
-    return;
-  }
-
-  // random insertion helper
-  const randomIndex = (deckArray) => Math.floor(Math.random() * (deckArray.length + 1));
-
-  if (dragged.classList.contains('support')) {
-    supportDeck.splice(randomIndex(supportDeck), 0, cardData);
+function cleanPush(arr, val) {
+  if (!arr.includes(val)) {
+    arr.push(val);
+    console.log(`Added ${val} to deck`);
   } else {
-    deck.splice(randomIndex(deck), 0, `${cardData.name} ${'⭐'.repeat(cardData.stars)}`);
+    console.log(`Skipped duplicate: ${val}`);
   }
-
-  // Clear slot styles if discarded from a stage slot
-  const parent = dragged.parentElement;
-  if (parent && parent.classList.contains('stage-slot')) {
-    parent.classList.remove("filled", "maxed");
-  }
-
-  dragged.remove();
-  dragged = null;
 }
 
-// Attach listeners to both discard zones
-function attachDiscardZoneListeners() {
-  ['discardLeft', 'discardRight'].forEach(id => {
-    const zone = document.getElementById(id);
-    if (!zone) return;
-    zone.addEventListener('dragenter', handleDragEnter);
-    zone.addEventListener('dragover', allowDrop);
-    zone.addEventListener('drop', onDiscardDrop);
-    zone.addEventListener('dragleave', removeDragOver);
+function toggleDiscardMode(player) {
+  const discardBtn = document.getElementById(`${player}DiscardBtn`);
+
+  // If already in discard mode for the same player, confirm discard
+  if (discardModePlayer === player) {
+    const selectedCards = Array.from(document.querySelectorAll(`.card.selected[data-player="${player}"]`));
+
+    if (selectedCards.length === 0) {
+      discardModePlayer = null;
+      discardBtn.classList.remove('active-discard');
+      discardBtn.textContent = "🗑️ Discard";
+      clearCardSelection(player);
+      return;
+    }
+
+    selectedCards.forEach(card => {
+      const cardData = parseCard(card);
+      if (!cardData) return;
+
+      const { name, stars } = cardData;
+      const parent = card.parentElement;
+      const fromStageOrTraining = parent?.classList.contains('stage-slot') || parent?.id.endsWith('Training');
+
+      if (card.classList.contains('support')) {
+        cleanPush(supportDeck, name);
+      } else {
+        if (fromStageOrTraining && upgradedIdols.has(name)) {
+          if (stars === 3) {
+            cleanPush(deck, `${name} ⭐`);
+            cleanPush(deck, `${name} ⭐⭐`);
+            cleanPush(deck, `${name} ⭐⭐⭐`);
+            upgradedIdols.delete(name);
+          } else if (stars === 2) {
+            cleanPush(deck, `${name} ⭐`);
+            cleanPush(deck, `${name} ⭐⭐`);
+            // Leave upgradedIdols entry intact
+          } else if (stars === 1) {
+            cleanPush(deck, `${name} ⭐`);
+          }
+        } else {
+          cleanPush(deck, `${name} ${'⭐'.repeat(stars)}`);
+        }
+      }
+
+      if (parent && parent.classList.contains('stage-slot')) {
+        parent.classList.remove("filled", "maxed", "matched");
+      }
+
+      card.remove();
+    });
+
+    discardModePlayer = null;
+    discardBtn.classList.remove('active-discard');
+    discardBtn.textContent = "🗑️ Discard";
+    clearCardSelection(player);
+    updateStageScores();
+    return;
+  }
+
+  // Enter discard mode
+  discardModePlayer = player;
+  discardBtn.classList.add('active-discard');
+  discardBtn.textContent = "✅ Confirm Discard";
+
+  clearCardSelection(player);
+
+  document.querySelectorAll(`.card[data-player="${player}"]`).forEach(card => {
+    card.onclick = () => {
+      if (discardModePlayer !== player) return;
+      card.classList.toggle('selected');
+    };
   });
 }
+
+function clearCardSelection(player) {
+  document.querySelectorAll(`.card.selected[data-player="${player}"]`).forEach(card => {
+    card.classList.remove('selected');
+    card.onclick = null;
+  });
+}
+
 
 // --- Initialize decks and listeners ---
 shuffleDeck();

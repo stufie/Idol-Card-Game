@@ -29,26 +29,33 @@
         <div class="draw-buttons-right">
           <button onclick="drawCards('player1Hand')">Draw 5 Cards (Hand)</button>
           <button onclick="draw('player1Hand', 1)">Draw 1 Card (Hand)</button>
+          <button id="player1DiscardBtn" onclick="toggleDiscardMode('player1')"> Discard</button>
         </div>
         <div id="player1Hand" class="zone hand-zone" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
           <div class="zone-label">Hand</div>
         </div>
 
         <div id="player1Stage" class="stage-zone">
-  <div id="player1Score" class="score-label">Stage        Influence points: 0 fans</div>
+          <div id="player1Score" class="score-label">Influence: 0k fans + Bonus: 0k fans  Fanbase: 0k fans</div>
 
+          
           <div id="player1Vocal" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
             <div class="slot-label">Vocal</div>
           </div>
+
           <div id="player1Dance" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
             <div class="slot-label">Dance</div>
           </div>
-          <div id="player1Center" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+
+          <div id="player1Center" class="stage-slot center-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
             <div class="slot-label">Center</div>
+            <div class="center-lock-msg"></div>
           </div>
+
           <div id="player1Visual" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
             <div class="slot-label">Visual</div>
           </div>
+
           <div id="player1Rap" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
             <div class="slot-label">Rap</div>
           </div>
@@ -73,44 +80,53 @@
           <div class="zone-label">Training Room</div>
         </div>
       </div>
-      
+
       <div class="right-zones">
         <div class="draw-buttons-right">
           <button onclick="drawCards('player2Hand')">Draw 5 Cards (Hand)</button>
           <button onclick="draw('player2Hand', 1)">Draw 1 Card (Hand)</button>
+          <button id="player2DiscardBtn" onclick="toggleDiscardMode('player2')"> Discard</button>
         </div>
         <div id="player2Hand" class="zone hand-zone" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
           <div class="zone-label">Hand</div>
         </div>
+
         <div id="player2Stage" class="stage-zone">
-           <div id="player2Score" class="score-label">Stage        Influence points: 0 fans</div>
+         <div id="player2Score" class="score-label">Influence: 0k fans + Bonus: 0k fans  Fanbase: 0k fans</div>
+
+          
           <div id="player2Vocal" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
             <div class="slot-label">Vocal</div>
           </div>
+
           <div id="player2Dance" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
             <div class="slot-label">Dance</div>
           </div>
-          <div id="player2Center" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
+
+          <div id="player2Center" class="stage-slot center-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
             <div class="slot-label">Center</div>
+            <div class="center-lock-msg"></div>
           </div>
+
           <div id="player2Visual" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
             <div class="slot-label">Visual</div>
           </div>
+
           <div id="player2Rap" class="stage-slot" ondragover="allowDrop(event)" ondrop="drop(event)" ondragleave="removeDragOver(event)">
             <div class="slot-label">Rap</div>
           </div>
         </div>
       </div>
     </div>
-    
-        <div id="discardLeft" class="discard-zone"></div>
-        <div id="discardRight" class="discard-zone"></div>
 
+    <div id="discardLeft" class="discard-zone"></div>
+    <div id="discardRight" class="discard-zone"></div>
   </div>
 
   <script src="deck.js"></script>
   <script src="scoring.js"></script>
   <script src="game.js"></script>
-  
 </body>
 </html>
+
+

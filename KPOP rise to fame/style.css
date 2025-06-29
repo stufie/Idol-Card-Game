@@ -71,12 +71,40 @@ body {
   height: 210px;
 }
 
+/* Only show message when center slot is empty */
+.center-slot:not(.filled)::before {
+  content: "Unlocks after Debuting a ⭐⭐⭐ idol";
+  background-color: #f4f4f4;
+  position: absolute;
+  text-align: center;
+  color: #adadad;
+  font-size: 12px;
+  padding: 5px;
+  pointer-events: none;
+  white-space: pre-wrap;
+  line-height: 1.3;
+}
+
 .stage-slot.filled {
   border-color: #ff9bba; /* light pink */
 }
 
 .stage-slot.maxed {
   border-color: #fd57aa; /* hot pink */
+}
+
+/* Default stage slot label color */
+.stage-slot .slot-label {
+  color: #adadad; /* light gray */
+}
+
+/* Only apply pink label if slot is both filled and matched */
+.stage-slot.filled.matched .slot-label {
+  color: #ff9bba;
+}
+
+.stage-slot.maxed.matched .slot-label {
+  color: #fd57aa;
 }
 
 /* Cards */
@@ -90,7 +118,16 @@ body {
   box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.1);
   cursor: grab;
   user-select: none;
+  
+  font-size: 15px;        /* all lines default to 12px */
+  line-height: 1.4;
   white-space: pre-wrap;
+}
+
+.card::first-line {
+  font-size: 17px;        /* only the very first line is 16px */
+  font-weight: 545; 
+  line-height: 1.7; /* slightly taller line */
 }
 
 /* Buttons */
@@ -153,6 +190,16 @@ padding: 40px 10px 20px 10px;
 
 #discardRight {
   right: 0;
+}
+
+.card.selected {
+  outline: 3px solid #390d0d;
+  background-color: #ffe6e6;
+}
+
+button.active-discard {
+  background-color: #585858;
+  color: white;
 }
 
 /* Labels */
